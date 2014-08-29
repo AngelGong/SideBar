@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="sidebar_slide_color">#4c5562</color>
+       <color name="sidebar_slide_color">#4c5562</color>
+   <color name="sidebar_bg_color">#263846</color>
 </resources>

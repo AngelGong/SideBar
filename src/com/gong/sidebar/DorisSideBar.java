@@ -2,28 +2,19 @@ package com.gong.sidebar;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.BitmapFactory;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
-import android.view.animation.AlphaAnimation;
-import android.view.animation.Animation;
-import android.view.animation.Animation.AnimationListener;
-import android.view.animation.AnimationSet;
-import android.view.animation.ScaleAnimation;
 import android.widget.BaseAdapter;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
-import android.widget.MultiAutoCompleteTextView;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -32,14 +23,15 @@ import android.widget.Toast;
  * @author lfgong
  *
  */
-public class DorisSideBar extends FrameLayout{
+public class DorisSideBar extends LinearLayout{
 
-	private SideItemClickEvent itemClickEvent = null;
+	private static SideItemClickEvent itemClickEvent = null;
 	private static Activity mContext = null;
 	private static List<NavBarItem> defaultItems = null;
 	private static List<NavBarItem> items = null;
 	private static ListView listView = null;
 	private static final Object obj = new Object();
+	private static ImageView image = null;
 	private static PopupWindow popWindow = null;
 	//保证只有一个被初始化的侧边栏
 	private static DorisSideBar sidebar = null;
@@ -50,30 +42,60 @@ public class DorisSideBar extends FrameLayout{
 	DorisSideBar(Context context) {
 		super(context);
 		//设置ListView的layout参数
+		initListView();
+		initImageView();
+		this.addView(image);
+		this.addView(listView);
+		this.setGravity(Gravity.TOP|Gravity.RIGHT);
+		this.setOrientation(LinearLayout.VERTICAL);
+		this.setOnTouchListener(new OnTouchListener() {
+			
+			@Override
+			public boolean onTouch(View v, MotionEvent event) {
+				dismissPopWindow();
+				return false;
+			}
+		});
+	}
+	
+	/**
+	 * 初始化ListView
+	 */
+	private void initListView()
+	{
 		listView = new ListView(mContext);
-		LayoutParams param = new FrameLayout.LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT);
+		LayoutParams param = new LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT);
+		listView.setLayoutParams(param);
 		listView.setAdapter(new SideBarListAdapter());
 		listView.setCacheColorHint(android.R.color.transparent);
-		listView.setBackgroundResource(R.drawable.bg_sidebar);
+		listView.setBackground(getResources().getDrawable(R.drawable.sidebar_bg_shape_263846));
 		listView.setAlpha(0.9f);
+		listView.setScrollingCacheEnabled(false);
 		listView.setDivider(getResources().getDrawable(R.color.sidebar_slide_color));
 		listView.setDividerHeight(1);
-		this.addView(listView, param);
 	}
-	private static int getpxFromPd(int dip)
+	
+	private void initImageView()
+	{
+		image = new ImageView(mContext);
+		image.setImageResource(R.drawable.bg_sidebar);
+		image.setAlpha(0.95f);
+		image.setPadding(0, 0,  getpxFromPd(4.5f),  getpxFromPd(-1.0f));
+	}
+	
+	private static int getpxFromPd(float dip)
 	{
 		return (int)(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,dip, mContext.getResources().getDisplayMetrics()) + 0.5f);
 	}
 	
 	private static void initPopWindow()
 	{
-		popWindow = new PopupWindow(sidebar,getpxFromPd(150), LayoutParams.WRAP_CONTENT, true);
+		popWindow = new PopupWindow(sidebar, getpxFromPd(156.0f), LayoutParams.WRAP_CONTENT, true);
 		popWindow.setAnimationStyle(R.style.style_anim_sidebar);
 		popWindow.setOutsideTouchable(true);
 		popWindow.setTouchable(true);
 		popWindow.setFocusable(true);
-		//TODO: 讲pd转换成px
-		popWindow.showAtLocation(mContext.getWindow().getDecorView(), Gravity.TOP|Gravity.RIGHT, 10, 30);
+		popWindow.showAtLocation(mContext.getWindow().getDecorView(), Gravity.TOP|Gravity.RIGHT, getpxFromPd(5.0f), getpxFromPd(64.0f));
 	}
 	
 	private static void dismissPopWindow()
@@ -94,7 +116,6 @@ public class DorisSideBar extends FrameLayout{
 	 */
 	public static boolean loadDorisSideBar(List<NavBarItem> items, Activity context, SideItemClickEvent clickEvent)
 	{
-		if(popWindow != null && popWindow.isShowing()) return true;
 		if(sidebar != null && context.equals(mContext))  //如果是同一个Activity引用在加载当前SideBar
 		{
 			initPopWindow();
@@ -102,22 +123,12 @@ public class DorisSideBar extends FrameLayout{
 		}
 		else
 		{
-			mContext = context;
-			DorisSideBar.items = items;
-			if(clickEvent == null) {
-				//TODO: 失败
-				return false;
-			}
+			if(clickEvent == null) return false;
 			synchronized (obj) {
+				itemClickEvent = clickEvent;
+				mContext = context;
+				DorisSideBar.items = items;
 				sidebar = new DorisSideBar(context);
-				sidebar.setOnTouchListener(new OnTouchListener() {
-					
-					@Override
-					public boolean onTouch(View v, MotionEvent event) {
-						dismissPopWindow();
-						return false;
-					}
-				});
 				initPopWindow();
 			}
 		}
